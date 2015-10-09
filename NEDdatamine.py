@@ -55,10 +55,10 @@ def get_download_link(site_extent):
 
 
 
-def download_from_link(link):
+def download_from_link(link,dest):
     filename = os.path.basename(urlparse.urlsplit(link)[2])
     print filename
-    output = os.path.join('C:\Fakhoury_DataMining\NED_10m',filename)
+    output = os.path.join(dest,filename)
     print output
     print "Downloading..."
     with closing(urllib2.urlopen(link)) as r:
