@@ -43,13 +43,14 @@ def get_download_link(site_extent):
                'dateType':'dateCreated','start':'','end':'',
                'polyCode':'','polyType':'', 'offset':'','max':'','outputFormat':'JSON'}
     r = requests.get('http://viewer.nationalmap.gov/tnmaccess/api/products',params = payload)
-    status = r.status_code
-    if status == 200:
+    if r.status_code == requests.codes.ok:
         response = r.json()
         if response['total']:
             return str(response['items'][0]['downloadURL'])
         else:
             return "No datasets found."
+    else:
+        r.raise_from_status()
 
 
 
