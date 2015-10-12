@@ -5,6 +5,7 @@ import urllib2
 import shutil
 from contextlib import closing
 import urlparse
+import time
 
 ##r = requests.get('http://viewer.nationalmap.gov/tnmaccess/api/products')
 ##'''http://viewer.nationalmap.gov/tnmaccess/api/products?
@@ -51,6 +52,7 @@ def get_download_link(site_extent):
             return "No datasets found."
     else:
         r.raise_from_status()
+    time.sleep(1)
 
 
 
@@ -65,5 +67,6 @@ def download_from_link(link,dest):
         with open(output,'wb') as f:
             shutil.copyfileobj(r,f)
     print "File downloaded successfully to {0}".format(output)
+    time.sleep(1)
     
     
