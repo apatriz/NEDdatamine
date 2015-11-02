@@ -42,7 +42,7 @@ def get_download_link(site_extent,dataset,product_format,product_extent):
 ##    dataset = 'National Elevation Dataset (NED) 1/3 arc-second'
 ##    product_format = 'IMG'
 ##    product_extent = '1 x 1 degree'
-	
+	links = []
 	payload = {'datasets':dataset,'bbox':site_extent,
 			   'q':'','prodFormats':product_format,'prodExtents':product_extent,
 			   'dateType':'dateCreated','start':'','end':'',
@@ -52,7 +52,10 @@ def get_download_link(site_extent,dataset,product_format,product_extent):
 	if r.status_code == requests.codes.ok:
 		response = r.json()
 		if 'total' in response:
-			return str(response['items'][0]['downloadURL'])
+			items = response['items']
+			for i in range(len(items)):
+				links.append(str(items[i]['downloadURL']))
+			return links 
 		else:
 			# print "No datasets found."
 			return None
