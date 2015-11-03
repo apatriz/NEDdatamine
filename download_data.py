@@ -11,9 +11,9 @@ import time
 ##'''http://viewer.nationalmap.gov/tnmaccess/api/products?
 ##datasets=National+Elevation+Dataset+%28NED%29+1%2F3+arc-second&bbox=-88.117798672%2C38.028972825%2C-88.117608031%2C38.029123082&q=&
 ##prodFormats=IMG&prodExtents=1+x+1+degree&dateType=dateCreated&start=&end=&polyCode=&polyType=&offset=&max=&outputFormat=JSON'''
+site_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
 
 
-##site_feature = 'C:/Fakhoury_DataMining/Fakhoury.gdb/Fakhoury_Polygons'
 
 def get_site_extents(site_feature):
 	site_extents = {}
@@ -24,7 +24,7 @@ def get_site_extents(site_feature):
 	return site_extents
 
 #TODO: if no results returned, get another request for different dataset and/or different product formats and product extents
-def get_download_link(site_extent,dataset,product_format,product_extent):
+def get_products(site_extent,dataset,product_format,product_extent):
 	''' (list/string) -> str
 	Takes as input a list of floats representing a spatial extent envelope, in the format [xMin,yMin,xMax,yMax] or as
 	a string in the format "xMin,yMin,xMax,yMax". Dataset, product format and product extent parameters are strings. Valid parameters values
@@ -42,20 +42,23 @@ def get_download_link(site_extent,dataset,product_format,product_extent):
 ##    dataset = 'National Elevation Dataset (NED) 1/3 arc-second'
 ##    product_format = 'IMG'
 ##    product_extent = '1 x 1 degree'
-	links = []
+	products = []
+	#set parameters for http request to TNM Access API 
 	payload = {'datasets':dataset,'bbox':site_extent,
 			   'q':'','prodFormats':product_format,'prodExtents':product_extent,
 			   'dateType':'dateCreated','start':'','end':'',
 			   'polyCode':'','polyType':'', 'offset':'','max':'','outputFormat':'JSON'}
 	
-	r = requests.get('http://viewer.nationalmap.gov/tnmaccess/api/products',params = payload)
+	r = requests.get(site_url,params = payload)
 	if r.status_code == requests.codes.ok:
 		response = r.json()
+		#check if there are results 
 		if 'total' in response:
 			items = response['items']
-			for i in range(len(items)):
-				links.append(str(items[i]['downloadURL']))
-			return links 
+			#append each item object to list 
+			for i in items:
+				products.append(i)
+			return products 
 		else:
 			# print "No datasets found."
 			return None
