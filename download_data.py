@@ -31,12 +31,6 @@ def get_products(site_extent,dataset,product_format,product_extent):
 	can be obtained from the USGS TNM Access API: http://viewer.nationalmap.gov/tnmaccess/api/productsForm.
 	Returns the download link string for the first dataset available in the list
 	of returned datasets for the given extent.
-	
-	>>> get_download_link([-97.84059593399996, 39.80099230800005, -97.83959155499997, 39.801785950000045])
-	>>> 'ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/NED/13/IMG/n40w098.zip'
-	>>> get_download_link('-97.84059593399996, 39.80099230800005, -97.83959155499997, 39.801785950000045')
-	>>> 'ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/NED/13/IMG/n40w098.zip'
-  
 	'''
 	site_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
 	#set parameters for http request to TNM Access API 
