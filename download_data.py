@@ -8,12 +8,14 @@ import urlparse
 import time
 import csv
 import itertools
+from lxml import html
 
 ##sample url from USGS TNM Access API
 ##'''http://viewer.nationalmap.gov/tnmaccess/api/products?
 ##datasets=National+Elevation+Dataset+%28NED%29+1%2F3+arc-second&bbox=-88.117798672%2C38.028972825%2C-88.117608031%2C38.029123082&q=&
 ##prodFormats=IMG&prodExtents=1+x+1+degree&dateType=dateCreated&start=&end=&polyCode=&polyType=&offset=&max=&outputFormat=JSON'''
 
+site_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
 
 def get_site_extents(site_feature):
 	site_extents = {}
@@ -32,7 +34,6 @@ def get_products(site_extent,dataset,product_format,product_extent):
 	Returns the download link string for the first dataset available in the list
 	of returned datasets for the given extent.
 	'''
-	site_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
 	#set parameters for http request to TNM Access API 
 	payload = {'datasets':dataset,'bbox':site_extent,
 			   'q':'','prodFormats':product_format,'prodExtents':product_extent,
@@ -66,7 +67,7 @@ def generate_product_table(site_extents,dataset,product_format,product_extent):
 	For each site extent entry, a list of dataset product objects is generated (get_link) for datasets that
 	cover the site extent. If no products were found, the site name is logged.
 	Each download url is checked for duplicates in the final url list 
-	("urls[3]"). Next, the product title,fileformat,boundingbox,url,thumbnail, and metadata value are appended to 
+	("columns[3]"). Next, the product title,fileformat,boundingbox,url,thumbnail, and metadata value are appended to 
 	their respective sublists, with each sublist representing a "column" in the data structure. 
 	Each "row" is a dataset product, and is represented by index number.
 	i.e. index 0 ("row 1")of sublist 0 ("column 1") refers to the same dataset product as index 0 ("row 1") of sublist 1 ("column 2").
@@ -76,7 +77,7 @@ def generate_product_table(site_extents,dataset,product_format,product_extent):
 	
 	'''
 	
-	urls =[['Title'],['FileFormat'],['BoundingBox'],['URL'],['Thumbnail'],['Metadata']]
+	columns =[['Title'],['FileFormat'],['BoundingBox'],['URL'],['Thumbnail'],['Metadata']]
 	missing_datasets = []
 	for site_name,site_extent in site_extents.items():
 		product_list = get_products(site_extent,dataset,product_format,product_extent)
@@ -84,30 +85,31 @@ def generate_product_table(site_extents,dataset,product_format,product_extent):
 			missing_datasets.append(site_name)
 		else:
 			for i in product_list:
-				if i['downloadURL'] not in urls[3]:
-					urls[0].append(i['title'])
-					urls[1].append(i['format'])
-					urls[2].append('{0},{1},{2},{3}'.format(i['boundingBox']['minX'],i['boundingBox']['minY'],i['boundingBox']['maxX'],i['boundingBox']['maxY']))
-					urls[3].append(i['downloadURL'])
-					urls[4].append(i['previewGraphicURL'])
-					urls[5].append(i['metaUrl'])
+				if i['downloadURL'] not in columns[3]:
+					columns[0].append(i['title'])
+					columns[1].append(i['format'])
+					columns[2].append('{0},{1},{2},{3}'.format(i['boundingBox']['minX'],i['boundingBox']['minY'],i['boundingBox']['maxX'],i['boundingBox']['maxY']))
+					columns[3].append(i['downloadURL'])
+					columns[4].append(i['previewGraphicURL'])
+					columns[5].append(i['metaUrl'])
 	#TODO: output to logfile instead of print to console
 	print "No datasets found for: ",missing_datasets
-	return urls
+	return columns
 
 
-def convert_to_csv(download_urls):
+def convert_to_csv(download_urls,output_dir):
 	''' (list of lists) -> full path string to csv file 
 	Takes an input list of lists. 
 	Precondition: Each sublist should represent a column of values. The indexes of each sublist should
 	correspond to each dataset. i.e. index 0 for each sublist should represent values from the same dataset. 
 	Outputs to csv file and returns the output path.
 	'''
-	with open('all_download_urls.csv','wb') as file:
+	output = os.path.join(output_dir,'download_links.csv')
+	with open(output,'wb') as file:
 		wr = csv.writer(file)
 		for row in itertools.izip_longest(*download_urls,fillvalue=''):
 			wr.writerow(row)
-	return os.path.abspath('all_download_urls.csv')
+	return output
 	
 
 
@@ -130,3 +132,8 @@ def download_from_link(link,dest):
 			shutil.copyfileobj(r,f)
 	print "File downloaded successfully to {0}".format(output)
 	time.sleep(2)
+	
+def html_parser():
+	page = requests.get(site_url)
+	tree = html.fromstring(page.content)
+	pass
