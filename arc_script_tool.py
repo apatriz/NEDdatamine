@@ -8,14 +8,33 @@ import urlparse
 import time
 import csv
 import itertools
-from lxml import html
+import bs4
 
-##sample url from USGS TNM Access API
-##'''http://viewer.nationalmap.gov/tnmaccess/api/products?
-##datasets=National+Elevation+Dataset+%28NED%29+1%2F3+arc-second&bbox=-88.117798672%2C38.028972825%2C-88.117608031%2C38.029123082&q=&
-##prodFormats=IMG&prodExtents=1+x+1+degree&dateType=dateCreated&start=&end=&polyCode=&polyType=&offset=&max=&outputFormat=JSON'''
 
-site_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
+#url variables
+api_access_url = 'http://viewer.nationalmap.gov/tnmaccess/api/products'
+form_url = 'http://viewer.nationalmap.gov/tnmaccess/api/productsForm'
+
+#arcpy parameters
+site_feature = arcpy.GetParameterAsText(0)
+csv_output = arcpy.GetParameterAsText(1)
+dataset = arcpy.GetParameterAsText(2)
+product_format = arcpy.GetParameterAsText(3)
+product_extent = arcpy.GetParameterAsText(4)
+date_type = arcpy.GetParameterAsText(5)
+date_start = arcpy.GetParameterAsText(6)
+date_end = arcpy.GetParameterAsText(7)
+
+
+# get lists of valid url parameters to pass to the GET request (can provide functionality to iterate through each set of parameters, to create multiple csv files)
+form_params = datamine_utils.parse_form_params(form_url)
+dataset_name_list = form_params['datasets']
+product_format_list = form_params['prodFormats']
+product_extent_list = form_params['prodExtents']
+date_type_list = form_params['dateType']
+
+
+
 
 def get_site_extents(site_feature):
 	site_extents = {}
@@ -26,7 +45,7 @@ def get_site_extents(site_feature):
 	return site_extents
 
 #TODO: if no results returned, get another request for different dataset and/or different product formats and product extents
-def get_products(site_extent,dataset,product_format,product_extent):
+def get_products(access_url,site_extent,dataset,product_format,product_extent,date_type,date_start,date_end):
 	''' (list/string) -> str
 	Takes as input a list of floats representing a spatial extent envelope, in the format [xMin,yMin,xMax,yMax] or as
 	a string in the format "xMin,yMin,xMax,yMax". Dataset, product format and product extent parameters are strings. Valid parameters values
@@ -37,10 +56,10 @@ def get_products(site_extent,dataset,product_format,product_extent):
 	#set parameters for http request to TNM Access API 
 	payload = {'datasets':dataset,'bbox':site_extent,
 			   'q':'','prodFormats':product_format,'prodExtents':product_extent,
-			   'dateType':'dateCreated','start':'','end':'',
+			   'dateType':date_type,'start':date_start,'end':date_end,
 			   'polyCode':'','polyType':'', 'offset':'','max':'','outputFormat':'JSON'}
 	products = []
-	r = requests.get(site_url,params = payload)
+	r = requests.get(access_url,params = payload)
 	if r.status_code == requests.codes.ok:
 		response = r.json()
 		#check if there are results 
@@ -58,7 +77,7 @@ def get_products(site_extent,dataset,product_format,product_extent):
 	time.sleep(2)
 	
 	
-def generate_product_table(site_extents,dataset,product_format,product_extent):
+def generate_product_table(access_url,site_extents,dataset,product_format,product_extent,date_type,date_start,date_end):
 	'''(dict,str,str,str) -> list of lists
 	
 	Takes input dict containing site names and site extents. Dataset,
@@ -75,12 +94,11 @@ def generate_product_table(site_extents,dataset,product_format,product_extent):
 	Returns the final list of lists (i.e. list of "columns"). 
 	The output is intended to be converted to a csv and used with the TNM Download Manager for bulk downloading of the datasets.
 	
-	'''
-	
+	'''	
 	columns =[['Title'],['FileFormat'],['BoundingBox'],['URL'],['Thumbnail'],['Metadata']]
 	missing_datasets = []
 	for site_name,site_extent in site_extents.items():
-		product_list = get_products(site_extent,dataset,product_format,product_extent)
+		product_list = get_products(access_url,site_extent,dataset,product_format,product_extent,date_type,date_start,date_end)
 		if not product_list:
 			missing_datasets.append(site_name)
 		else:
@@ -104,7 +122,8 @@ def convert_to_csv(download_urls,output_dir):
 	correspond to each dataset. i.e. index 0 for each sublist should represent values from the same dataset. 
 	Outputs to csv file and returns the output path.
 	'''
-	output = os.path.join(output_dir,'download_links.csv')
+	file_name = 'download_links.csv'
+	output = os.path.join(output_dir,file_name)
 	with open(output,'wb') as file:
 		wr = csv.writer(file)
 		for row in itertools.izip_longest(*download_urls,fillvalue=''):
@@ -133,7 +152,42 @@ def download_from_link(link,dest):
 	print "File downloaded successfully to {0}".format(output)
 	time.sleep(2)
 	
-def html_parser():
-	page = requests.get(site_url)
-	tree = html.fromstring(page.content)
-	pass
+def parse_form_params(site_to_parse):
+	'''
+	Gets html response using requests lib. Parses content and retrieves all  <select> tags and <option> values using BeautifulSoup. 
+	Returns a dict with <select> tag 'name' attribute as the key, and a list of it's child <option> tag 'value' attributes as value.
+	
+	>>> parse_form_params('http://viewer.nationalmap.gov/tnmaccess/api/productsForm')
+	>>> {'datasets':['NED 1/3 arcsecond','NED 1/9 arcsecond'],'prodFormats':['IMG','BIL','GRID']}
+	
+	'''
+	res = requests.get(site_to_parse)
+	html = res.content
+	soup = bs4.BeautifulSoup(html,'lxml')
+	form_params = {}
+	select_tags = soup.find_all('select')
+	for tag in select_tags:
+		name = tag['name']
+		option_values = [option.get('value') for option in tag.find_all('option') if option.get('value')]
+		form_params[name] = option_values
+	return form_params
+
+def main():
+	# get site extents
+	print "Getting site extents..."
+	site_extents = get_site_extents(site_feature)
+	# get all download links
+	print "Retrieving all available datasets for your areas of interest..."
+	product_table = generate_product_table(api_access_url,site_extents,dataset,product_format,product_extent,date_type,date_start,date_end)
+	print "Total number of datasets to download: ",len(product_table[3])-1 
+	#convert to csv
+	print "Converting to csv..."
+	csv_file = convert_to_csv(product_table,csv_output)
+	print "CSV file saved to: {0}".format(csv_file)
+	#open TNM download manager
+	print "Opening TNM Download Manager..." 
+	open_download_manager()
+	
+
+if __name__ == "__main__":
+	main()
