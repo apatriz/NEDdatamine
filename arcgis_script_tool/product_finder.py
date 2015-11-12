@@ -1,3 +1,5 @@
+# For use as ArcGIS script tool. Outputs a csv file containing links and metadata for retreived USGS datasets. Can be imported 
+# into TNM Download manager to bulk download the datasets.
 import requests
 import arcpy
 import os
@@ -18,20 +20,43 @@ form_url = 'http://viewer.nationalmap.gov/tnmaccess/api/productsForm'
 #arcpy parameters
 site_feature = arcpy.GetParameterAsText(0)
 csv_output = arcpy.GetParameterAsText(1)
-dataset = arcpy.GetParameterAsText(2)
-product_format = arcpy.GetParameterAsText(3)
-product_extent = arcpy.GetParameterAsText(4)
-date_type = arcpy.GetParameterAsText(5)
-date_start = arcpy.GetParameterAsText(6)
-date_end = arcpy.GetParameterAsText(7)
+dataset = arcpy.GetParameterAsText(2) or ''
+product_format = arcpy.GetParameterAsText(3) or ''
+product_extent = arcpy.GetParameterAsText(4) or ''
+date_type = arcpy.GetParameterAsText(5) or 'dateCreated'
+date_start = arcpy.GetParameterAsText(6) or ''
+date_end = arcpy.GetParameterAsText(7) or ''
 
+arcpy.AddMessage("AOI Feature Class: {0}\nOutput Location: {1}\nDataset: {2}\nProduct Format: {3}\n"
+	"Product Extent: {4}\nDate Type: {5}\nDate Start: {6}\nDate End: {7}\n".format(site_feature,csv_output,dataset,product_format,product_extent,date_type,date_start,date_end))
 
-# get lists of valid url parameters to pass to the GET request (can provide functionality to iterate through each set of parameters, to create multiple csv files)
-form_params = datamine_utils.parse_form_params(form_url)
-dataset_name_list = form_params['datasets']
-product_format_list = form_params['prodFormats']
-product_extent_list = form_params['prodExtents']
-date_type_list = form_params['dateType']
+### This function is used in Script Tool validation code to update parameter lists when opening the tool  
+# def parse_form_params(site_to_parse):
+	# '''
+	# Gets html response using requests lib. Parses content and retrieves all  <select> tags and <option> values using BeautifulSoup. 
+	# Returns a dict with <select> tag 'name' attribute as the key, and a list of it's child <option> tag 'value' attributes as value.
+	
+	# >>> parse_form_params('http://viewer.nationalmap.gov/tnmaccess/api/productsForm')
+	# >>> {'datasets':['NED 1/3 arcsecond','NED 1/9 arcsecond'],'prodFormats':['IMG','BIL','GRID']}
+	
+	# '''
+	# res = requests.get(site_to_parse)
+	# html = res.content
+	# soup = bs4.BeautifulSoup(html,'lxml')
+	# form_params = {}
+	# select_tags = soup.find_all('select')
+	# for tag in select_tags:
+		# name = tag['name']
+		# option_values = [option.get('value') for option in tag.find_all('option') if option.get('value')]
+		# form_params[name] = option_values
+	# return form_params
+
+### get lists of valid url parameters to pass to the GET request (can provide future functionality to iterate through each set of parameters, to create multiple csv files)	
+# # form_params = parse_form_params(form_url)
+# # dataset_name_list = form_params['datasets']
+# # product_format_list = form_params['prodFormats']
+# # product_extent_list = form_params['prodExtents']
+# # date_type_list = form_params['dateType']
 
 
 
@@ -43,6 +68,7 @@ def get_site_extents(site_feature):
 			extent = row[1].extent
 			site_extents[row[0]] = [extent.XMin,extent.YMin,extent.XMax,extent.YMax]
 	return site_extents
+	
 
 #TODO: if no results returned, get another request for different dataset and/or different product formats and product extents
 def get_products(access_url,site_extent,dataset,product_format,product_extent,date_type,date_start,date_end):
@@ -111,7 +137,7 @@ def generate_product_table(access_url,site_extents,dataset,product_format,produc
 					columns[4].append(i['previewGraphicURL'])
 					columns[5].append(i['metaUrl'])
 	#TODO: output to logfile instead of print to console
-	print "No datasets found for: ",missing_datasets
+	arcpy.AddMessage("No datasets found for: {0}".format(missing_datasets))
 	return columns
 
 
@@ -133,60 +159,39 @@ def convert_to_csv(download_urls,output_dir):
 
 
 def open_download_manager():
+	script_dir = os.path.abspath(os.path.realpath(__file__))
 	try:
-		os.startfile('TNMDownloadManager__V1.2.jar')
+		arcpy.AddMessage("Attempting to open TNM Download Manager...")
+		os.startfile(os.path.join(script_dir,'TNMDownloadManager__V1.2.jar'))
+		time.sleep(2)
+		arcpy.AddMessage("Import {0} to start bulk download.".format(csv_file))
 	except Exception, e:
-		print str(e)
+		arcpy.AddWarning(str(e))
+		arcpy.AddWarning("Ensure TNM Download Manager is located in the same directory as the script.")
+	
 
 
-
-def download_from_link(link,dest):
-	filename = os.path.basename(urlparse.urlsplit(link)[2])
-	output = os.path.join(dest,filename)
-	print "Downloading file: {0} to destination: {1}".format(filename,output)
-	with closing(urllib2.urlopen(link)) as r:
-		print "Download in progress..."
-		with open(output,'wb') as f:
-			print "Copying file to destination..."
-			shutil.copyfileobj(r,f)
-	print "File downloaded successfully to {0}".format(output)
-	time.sleep(2)
-	
-def parse_form_params(site_to_parse):
-	'''
-	Gets html response using requests lib. Parses content and retrieves all  <select> tags and <option> values using BeautifulSoup. 
-	Returns a dict with <select> tag 'name' attribute as the key, and a list of it's child <option> tag 'value' attributes as value.
-	
-	>>> parse_form_params('http://viewer.nationalmap.gov/tnmaccess/api/productsForm')
-	>>> {'datasets':['NED 1/3 arcsecond','NED 1/9 arcsecond'],'prodFormats':['IMG','BIL','GRID']}
-	
-	'''
-	res = requests.get(site_to_parse)
-	html = res.content
-	soup = bs4.BeautifulSoup(html,'lxml')
-	form_params = {}
-	select_tags = soup.find_all('select')
-	for tag in select_tags:
-		name = tag['name']
-		option_values = [option.get('value') for option in tag.find_all('option') if option.get('value')]
-		form_params[name] = option_values
-	return form_params
 
 def main():
 	# get site extents
-	print "Getting site extents..."
+	arcpy.AddMessage("Getting site extents...")
 	site_extents = get_site_extents(site_feature)
 	# get all download links
-	print "Retrieving all available datasets for your areas of interest..."
+	arcpy.AddMessage("Retrieving all available datasets for your areas of interest...")
 	product_table = generate_product_table(api_access_url,site_extents,dataset,product_format,product_extent,date_type,date_start,date_end)
-	print "Total number of datasets to download: ",len(product_table[3])-1 
+	if len(product_table[3])-1 != 0:
+		arcpy.AddMessage("Total number of datasets to download: {0}".format(len(product_table[3])-1)) 
+	else:
+		arcpy.AddWarning("No datasets found. Change your search parameters and run the tool again.")
+		raise sys.exit()
 	#convert to csv
-	print "Converting to csv..."
+	arcpy.AddMessage("Converting to csv...")
 	csv_file = convert_to_csv(product_table,csv_output)
-	print "CSV file saved to: {0}".format(csv_file)
+	arcpy.AddMessage("CSV file saved to: {0}".format(csv_file)) 
 	#open TNM download manager
-	print "Opening TNM Download Manager..." 
 	open_download_manager()
+		
+
 	
 
 if __name__ == "__main__":
