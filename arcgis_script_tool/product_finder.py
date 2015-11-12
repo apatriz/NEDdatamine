@@ -159,7 +159,7 @@ def convert_to_csv(download_urls,output_dir):
 
 
 def open_download_manager():
-	script_dir = os.path.abspath(os.path.realpath(__file__))
+	script_dir = os.path.dirname(os.path.realpath(__file__))
 	try:
 		arcpy.AddMessage("Attempting to open TNM Download Manager...")
 		os.startfile(os.path.join(script_dir,'TNMDownloadManager__V1.2.jar'))
