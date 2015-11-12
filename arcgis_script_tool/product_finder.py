@@ -164,7 +164,6 @@ def open_download_manager():
 		arcpy.AddMessage("Attempting to open TNM Download Manager...")
 		os.startfile(os.path.join(script_dir,'TNMDownloadManager__V1.2.jar'))
 		time.sleep(2)
-		arcpy.AddMessage("Import {0} to start bulk download.".format(csv_file))
 	except Exception, e:
 		arcpy.AddWarning(str(e))
 		arcpy.AddWarning("Ensure TNM Download Manager is located in the same directory as the script.")
@@ -190,6 +189,7 @@ def main():
 	arcpy.AddMessage("CSV file saved to: {0}".format(csv_file)) 
 	#open TNM download manager
 	open_download_manager()
+	arcpy.AddMessage("Import {0} to start bulk download.".format(csv_file))
 		
 
 	
