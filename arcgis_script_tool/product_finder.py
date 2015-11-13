@@ -160,13 +160,8 @@ def convert_to_csv(download_urls,output_dir):
 
 def open_download_manager():
 	script_dir = os.path.dirname(os.path.realpath(__file__))
-	try:
-		arcpy.AddMessage("Attempting to open TNM Download Manager...")
-		os.startfile(os.path.join(script_dir,'TNMDownloadManager__V1.2.jar'))
-		time.sleep(2)
-	except Exception, e:
-		arcpy.AddWarning(str(e))
-		arcpy.AddWarning("Ensure TNM Download Manager is located in the same directory as the script.")
+	os.startfile(os.path.join(script_dir,'TNMDownloadManager__V1.2.jar'))
+	time.sleep(2)
 	
 
 
@@ -188,11 +183,15 @@ def main():
 	csv_file = convert_to_csv(product_table,csv_output)
 	arcpy.AddMessage("CSV file saved to: {0}".format(csv_file)) 
 	#open TNM download manager
-	open_download_manager()
-	arcpy.AddMessage("Import {0} to start bulk download.".format(csv_file))
-		
-
+	try:
+		arcpy.AddMessage("Attempting to open TNM Download Manager...")
+		open_download_manager()
+		arcpy.AddMessage("Import {0} into TNM Download Manager to start bulk download.".format(csv_file))
+	except Exception, e:
+		arcpy.AddWarning(str(e))
+		arcpy.AddWarning("Ensure TNM Download Manager is located in the same directory as 'product_finder.py'.")
 	
+		
 
 if __name__ == "__main__":
 	main()
