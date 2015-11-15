@@ -23,6 +23,7 @@ csv_output = arcpy.GetParameterAsText(1)
 dataset = arcpy.GetParameterAsText(2) or ''
 product_format = arcpy.GetParameterAsText(3) or ''
 product_extent = arcpy.GetParameterAsText(4) or ''
+# TODO: implement calendar widget for date inputs
 date_type = arcpy.GetParameterAsText(5) or 'dateCreated'
 date_start = arcpy.GetParameterAsText(6) or ''
 date_end = arcpy.GetParameterAsText(7) or ''
