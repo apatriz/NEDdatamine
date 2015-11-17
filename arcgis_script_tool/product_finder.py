@@ -11,6 +11,7 @@ import time
 import csv
 import itertools
 import bs4
+from datetime import datetime
 
 
 #url variables
@@ -27,6 +28,17 @@ product_extent = arcpy.GetParameterAsText(4) or ''
 date_type = arcpy.GetParameterAsText(5) or 'dateCreated'
 date_start = arcpy.GetParameterAsText(6) or ''
 date_end = arcpy.GetParameterAsText(7) or ''
+#change date parameters to correct format
+if date_start:
+	if len(date_start) > 10:
+		date_start = date_start[:date_start.find(' ')]
+	changed_date_start = datetime.strptime(date_start,"%m/%d/%Y")
+	date_start = datetime.strftime(changed_date_start, "%Y-%m-%d")
+if date_end:
+	if len(date_end) > 10:
+		date_end = date_end[:date_end.find(' ')]
+	changed_date_end = datetime.strptime(date_end,"%m/%d/%Y")
+	date_end = datetime.strftime(changed_date_end, "%Y-%m-%d")
 
 arcpy.AddMessage("AOI Feature Class: {0}\nOutput Location: {1}\nDataset: {2}\nProduct Format: {3}\n"
 	"Product Extent: {4}\nDate Type: {5}\nDate Start: {6}\nDate End: {7}\n".format(site_feature,csv_output,dataset,product_format,product_extent,date_type,date_start,date_end))
