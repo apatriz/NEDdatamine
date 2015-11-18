@@ -1,15 +1,12 @@
 # For use as ArcGIS script tool. Outputs a csv file containing links and metadata for retreived USGS datasets. Can be imported 
 # into TNM Download manager to bulk download the datasets.
-import requests
+
 import arcpy
 import os
-import urllib2
-import shutil
-from contextlib import closing
-import urlparse
 import time
 import csv
 import itertools
+import requests
 import bs4
 from datetime import datetime
 
@@ -150,7 +147,8 @@ def generate_product_table(access_url,site_extents,dataset,product_format,produc
 					columns[4].append(i['previewGraphicURL'])
 					columns[5].append(i['metaUrl'])
 	#TODO: output to logfile instead of print to console
-	arcpy.AddMessage("No datasets found for: {0}".format(missing_datasets))
+	if missing_datasets:
+		arcpy.AddWarning("No datasets found for {0} sites: {1}".format(len(missing_datasets),missing_datasets))
 	return columns
 
 
