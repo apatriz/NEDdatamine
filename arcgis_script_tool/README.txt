@@ -1,9 +1,9 @@
-# Find USGS Products
+#Name: Find USGS Products
 ArcGIS script tool intended to be used when there is a need to aquire datasets for a large number of specific sites or areas of interest. 
 It takes a polygon feature class containing the areas of interest and finds all USGS datasets available with the given parameters. 
 The parameters are taken directly from The National Map, which ensures they will always be up to date.
 
-# Installation
+#Installation Instructions:
 Requires Python 2.7x This should already be installed with ArcGIS. 
 Open the command shell and type:
 
@@ -23,7 +23,7 @@ may need administrator access).
 
 Download "get-pip.py" (right click, "save link as...") : http://pip.readthedocs.org/en/stable/installing/
 
-Open command shell and type:
+Open the command shell and type:
 
 
 python /path/to/get-pip.py
