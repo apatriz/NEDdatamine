@@ -80,7 +80,7 @@ def get_site_extents(site_feature):
 	return site_extents
 	
 
-#TODO: if no results returned, get another request for different dataset and/or different product formats and product extents
+
 def get_products(access_url,site_extent,dataset,product_format,product_extent,date_type,date_start,date_end):
 	''' (list/string) -> str
 	Takes as input a list of floats representing a spatial extent envelope, in the format [xMin,yMin,xMax,yMax] or as
